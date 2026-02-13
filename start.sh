@@ -1,26 +1,37 @@
 #!/usr/bin/env bash
 set -e
 
-# Ensure storage/cache folders are writable
+# -----------------------------
+# 1) Permissions (safe on Render)
+# -----------------------------
 chmod -R 775 storage bootstrap/cache || true
 chown -R www-data:www-data storage bootstrap/cache || true
 
-# Generate APP_KEY if not set
-if [ -z "${APP_KEY}" ] || [ "${APP_KEY}" = "base64:" ]; then
-  php artisan key:generate --force || true
-fi
+# -----------------------------------------
+# 2) IMPORTANT: DO NOT run key:generate here
+# Render Free me .env file hoti nahi, aur key:generate .env ko write/read try karta hai.
+# APP_KEY hamesha Render Environment Variables me set karo (Generate button se).
+# -----------------------------------------
 
-# Clear caches (safe)
+# -----------------------------
+# 3) Clear caches (safe)
+# -----------------------------
 php artisan config:clear || true
 php artisan cache:clear || true
 php artisan view:clear || true
 
-# Run migrations (only if DB is reachable)
+# -----------------------------
+# 4) Run migrations (safe)
+# -----------------------------
 php artisan migrate --force || true
 
-# Rebuild caches (optional)
+# -----------------------------
+# 5) Rebuild caches (optional)
+# -----------------------------
 php artisan config:cache || true
 php artisan view:cache || true
 
-# Start Apache
+# -----------------------------
+# 6) Start Apache
+# -----------------------------
 apache2-foreground
