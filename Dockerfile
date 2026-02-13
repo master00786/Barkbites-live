@@ -50,5 +50,5 @@ RUN chmod -R 775 storage bootstrap/cache \
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
-EXPOSE 80
+EXPOSE 10000
 CMD ["/start.sh"]

@@ -7,41 +7,38 @@ set -e
 chmod -R 775 storage bootstrap/cache || true
 chown -R www-data:www-data storage bootstrap/cache || true
 
-# -----------------------------------------
-# 2) IMPORTANT: DO NOT run key:generate here
-# APP_KEY Render Environment Variables me set hota hai.
-# -----------------------------------------
-
 # -----------------------------
-# 3) Clear caches (safe)
+# 2) Clear caches (safe)
 # -----------------------------
 php artisan config:clear || true
 php artisan cache:clear || true
 php artisan view:clear || true
 
 # -----------------------------
-# 4) Run migrations (safe)
+# 3) Run migrations (safe)
 # -----------------------------
 php artisan migrate --force || true
 
 # -----------------------------
-# 5) Rebuild caches (optional)
+# 4) Rebuild caches (optional)
 # -----------------------------
 php artisan config:cache || true
 php artisan view:cache || true
 
 # -----------------------------
-# 6) IMPORTANT: Bind Apache to Render's PORT
+# 5) BIND APACHE TO RENDER PORT (CRITICAL FIX)
 # -----------------------------
-if [ -n "${PORT}" ]; then
-  # Make Apache listen on Render-provided $PORT
-  sed -i "s/^Listen 80$/Listen ${PORT}/" /etc/apache2/ports.conf || true
+if [ -n "$PORT" ]; then
+  echo "Binding Apache to PORT=$PORT"
 
-  # Update default vhost to use the same port
-  sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf || true
+  # Replace ANY Listen directive with Render PORT
+  sed -i -E "s/^Listen .*/Listen ${PORT}/" /etc/apache2/ports.conf || true
+
+  # Replace VirtualHost port
+  sed -i -E "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf || true
 fi
 
 # -----------------------------
-# 7) Start Apache
+# 6) Start Apache
 # -----------------------------
 apache2-foreground
