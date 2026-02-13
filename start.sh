@@ -1,49 +1,38 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Starting container…"
+echo "=== Booting BarkBites on Render ==="
 
-# -----------------------------
-# 1) Permissions (Render safe)
-# -----------------------------
-chmod -R 775 storage bootstrap/cache || true
-chown -R www-data:www-data storage bootstrap/cache || true
+# 1) Permissions
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache || true
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache || true
 
-# -----------------------------
-# 2) Clear Laravel caches
-# -----------------------------
+# 2) Laravel caches clear (safe)
 php artisan config:clear || true
 php artisan cache:clear || true
 php artisan view:clear || true
 
-# -----------------------------
-# 3) Run migrations
-# -----------------------------
+# 3) DB migrate (safe)
 php artisan migrate --force || true
 
-# -----------------------------
-# 4) Rebuild caches
-# -----------------------------
+# 4) Cache again (optional)
 php artisan config:cache || true
 php artisan view:cache || true
 
-# -----------------------------
-# 5) FORCE Apache to bind Render PORT
-# THIS IS THE MOST IMPORTANT PART
-# -----------------------------
-if [ -z "$PORT" ]; then
-  echo "ERROR: PORT is not set by Render"
+# 5) Render PORT binding (CRITICAL)
+if [ -z "${PORT}" ]; then
+  echo "ERROR: PORT env not set by Render"
   exit 1
 fi
 
-echo "Binding Apache to 0.0.0.0:$PORT"
+echo "Binding Apache to PORT=${PORT}"
 
-# Force Apache to listen on Render port
+# Force Apache to listen on Render's PORT on all interfaces
 cat > /etc/apache2/ports.conf <<EOF
 Listen 0.0.0.0:${PORT}
 EOF
 
-# Force VirtualHost to same port
+# Ensure DocumentRoot = Laravel public + VirtualHost uses PORT
 cat > /etc/apache2/sites-available/000-default.conf <<EOF
 <VirtualHost *:${PORT}>
     ServerAdmin webmaster@localhost
@@ -59,8 +48,6 @@ cat > /etc/apache2/sites-available/000-default.conf <<EOF
 </VirtualHost>
 EOF
 
-# -----------------------------
-# 6) Start Apache (foreground)
-# -----------------------------
-echo "Starting Apache…"
+# 6) Start Apache
+echo "Starting Apache..."
 exec apache2-foreground
