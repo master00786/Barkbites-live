@@ -9,8 +9,7 @@ chown -R www-data:www-data storage bootstrap/cache || true
 
 # -----------------------------------------
 # 2) IMPORTANT: DO NOT run key:generate here
-# Render Free me .env file hoti nahi, aur key:generate .env ko write/read try karta hai.
-# APP_KEY hamesha Render Environment Variables me set karo (Generate button se).
+# APP_KEY Render Environment Variables me set hota hai.
 # -----------------------------------------
 
 # -----------------------------
@@ -32,6 +31,17 @@ php artisan config:cache || true
 php artisan view:cache || true
 
 # -----------------------------
-# 6) Start Apache
+# 6) IMPORTANT: Bind Apache to Render's PORT
+# -----------------------------
+if [ -n "${PORT}" ]; then
+  # Make Apache listen on Render-provided $PORT
+  sed -i "s/^Listen 80$/Listen ${PORT}/" /etc/apache2/ports.conf || true
+
+  # Update default vhost to use the same port
+  sed -i "s/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/" /etc/apache2/sites-available/000-default.conf || true
+fi
+
+# -----------------------------
+# 7) Start Apache
 # -----------------------------
 apache2-foreground
